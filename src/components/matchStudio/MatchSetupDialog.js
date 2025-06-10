@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from "react";
 import teamAPI from "../../api/teamAPI";
+import matchAPI from "../../api/matchAPI";
 import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 // import { setMatchInfo } from "../../store/matchSlide";
 
 const MatchSetupDialog = ({ onClose }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-  const [season, setSeason] = useState("");
-  const [matchType, setMatchType] = useState("5v5");
-  const [homeTeamId, setHomeTeamId] = useState(null);
-  const [awayTeamId, setAwayTeamId] = useState(null);
+  // const [season, setSeason] = useState("");
+  const [gameType, setGameType] = useState("5v5");
+  const [homeTeam, setHomeTeam] = useState(null);
+  const [awayTeam, setAwayTeam] = useState(null);
 
   const [teams, setTeams] = useState([]);
   const [showHomeDropdown, setShowHomeDropdown] = useState(false);
@@ -27,27 +30,48 @@ const MatchSetupDialog = ({ onClose }) => {
     fetchTeams();
   }, []);
 
-  const handleSubmit = () => {
-    if (!season || !homeTeamId || !awayTeamId || homeTeamId === awayTeamId) {
-      alert("Please select valid teams and season.");
+  const handleSubmit = async () => {
+    if (!homeTeam || !awayTeam || homeTeam === awayTeam) {
+      alert("Please select valid teams");
       return;
+    } else {
+      let data = {
+        homeTeam: homeTeam,
+        awayTeam,
+      };
+      try {
+        const res = await matchAPI.createMatch({
+          gameType,
+          homeTeam,
+          awayTeam,
+          status: "Upcoming",
+          date: "",
+          videoUrl: [],
+        });
+        console.log(res.data);
+        let matchId = res.data.id;
+        if (matchId) {
+          navigate(`/match-studio/${matchId}`, { replace: true }); // chuyển route mới
+        }
+      } catch (error) {
+        console.error("Error creating match:", error);
+      }
     }
-    console.log(season, matchType, homeTeamId, awayTeamId);
-    // dispatch(setMatchInfo({ season, matchType, homeTeamId, awayTeamId }));
+    // dispatch(setMatchInfo({ season, gameType, homeTeam, awayTeam }));
     onClose();
   };
 
   const renderDropdown = (type) => {
     const isHome = type === "home";
-    const selectedTeamId = isHome ? homeTeamId : awayTeamId;
-    const setSelected = isHome ? setHomeTeamId : setAwayTeamId;
+    const selectedTeamId = isHome ? homeTeam : awayTeam;
+    const setSelected = isHome ? setHomeTeam : setAwayTeam;
     const toggleDropdown = isHome
       ? () => setShowHomeDropdown(!showHomeDropdown)
       : () => setShowAwayDropdown(!showAwayDropdown);
 
     const filterTeams = isHome
       ? teams
-      : teams.filter((team) => team._id !== homeTeamId); // không cho chọn trùng
+      : teams.filter((team) => team._id !== homeTeam); // không cho chọn trùng
 
     const selectedTeam = teams.find((t) => t._id === selectedTeamId);
 
@@ -98,7 +122,7 @@ const MatchSetupDialog = ({ onClose }) => {
 
             <div
               className="p-2 hover:bg-green-100 cursor-pointer text-sm text-green-600 font-semibold border-t"
-              onClick={() => alert("Open Create New Team modal")}
+              // onClick={() => alert("Open Create New Team modal")}
             >
               ➕ Create new team
             </div>
@@ -114,21 +138,21 @@ const MatchSetupDialog = ({ onClose }) => {
         <h2 className="text-xl font-bold mb-4 text-center">Create New Match</h2>
 
         {/* Season */}
-        <label className="block text-sm font-medium">Season</label>
+        {/* <label className="block text-sm font-medium">Season</label>
         <input
           type="text"
           className="w-full border p-2 rounded mb-4"
           value={season}
           onChange={(e) => setSeason(e.target.value)}
           placeholder="e.g. 2024-2025"
-        />
+        /> */}
 
         {/* Match Type */}
         <label className="block text-sm font-medium">Match Type</label>
         <select
           className="w-full border p-2 rounded mb-4"
-          value={matchType}
-          onChange={(e) => setMatchType(e.target.value)}
+          value={gameType}
+          onChange={(e) => setGameType(e.target.value)}
         >
           <option value="5v5">5v5</option>
           <option value="3v3">3v3</option>

@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import gsap from "gsap";
-import { useSelector } from "react-redux";
 import eventStepConfig from "../../config/eventStepConfig";
 
 const events = [
@@ -20,6 +19,8 @@ const EventCreateSteps = () => {
   const containerRef = useRef(null);
 
   const steps = eventType ? eventStepConfig[eventType] || [] : [];
+  const currentStep = steps[stepIndex];
+  const stepKey = currentStep?.step;
 
   useEffect(() => {
     if (containerRef.current) {
@@ -38,39 +39,33 @@ const EventCreateSteps = () => {
   };
 
   const handleNext = (value) => {
-    const key = steps[stepIndex]?.step;
-    setFormData((prev) => ({ ...prev, [key]: value }));
+    const updated = { ...formData, [stepKey]: value };
+    setFormData(updated);
+
     if (stepIndex < steps.length - 1) {
       setStepIndex((prev) => prev + 1);
     } else {
-      // Submit hoặc hoàn tất ở đây
-      console.log("Submitted data:", {
-        eventType,
-        ...formData,
-        [key]: value,
-      });
-      // Reset hoặc tiếp tục tùy ý
+      console.log("🎯 Final Event Created:", { eventType, ...updated });
+      // Reset hoặc gửi API tại đây
     }
   };
 
   const handleBack = () => {
-    if (stepIndex === 0) {
-      setEventType(null);
-    } else {
-      setStepIndex((prev) => prev - 1);
-    }
+    if (stepIndex === 0) setEventType(null);
+    else setStepIndex((prev) => prev - 1);
   };
 
   return (
     <div className="w-full h-full flex flex-col justify-center items-center">
-      <div className="w-full max-w-md" ref={containerRef}>
+      <div className="w-full max-w-md p-4" ref={containerRef}>
+        {/* Step chọn Event Type */}
         {!eventType && (
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="flex flex-wrap justify-center gap-3">
             {events.map((ev) => (
               <button
                 key={ev.type}
                 onClick={() => handleEventClick(ev.type)}
-                className="bg-orange text-white px-4 py-2 rounded shadow"
+                className="bg-orange text-white px-4 py-2 rounded hover:bg-orange-600 shadow"
               >
                 {ev.label}
               </button>
@@ -78,18 +73,23 @@ const EventCreateSteps = () => {
           </div>
         )}
 
-        {eventType && stepIndex < steps.length && (
+        {/* Các bước nhập dữ liệu */}
+        {eventType && currentStep && (
           <div className="text-center space-y-4">
-            <h2 className="text-lg font-semibold mb-2">{steps[stepIndex].label}</h2>
+            <h2 className="text-lg font-semibold">{currentStep.label}</h2>
 
-            {/* Nếu có options thì tạo các nút */}
-            {steps[stepIndex].options ? (
+            {/* Nếu có options → tạo nút lựa chọn */}
+            {currentStep.options ? (
               <div className="flex flex-wrap justify-center gap-2">
-                {steps[stepIndex].options.map((opt) => (
+                {currentStep.options.map((opt) => (
                   <button
                     key={opt}
                     onClick={() => handleNext(opt)}
-                    className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-1 rounded"
+                    className={`px-4 py-2 rounded ${
+                      formData[stepKey] === opt
+                        ? "bg-blue-700 text-white"
+                        : "bg-sky-500 hover:bg-sky-600 text-white"
+                    }`}
                   >
                     {opt}
                   </button>
@@ -102,6 +102,13 @@ const EventCreateSteps = () => {
               >
                 Next
               </button>
+            )}
+
+            {/* Hiển thị dữ liệu đã chọn trước đó */}
+            {formData[stepKey] && (
+              <div className="text-sm text-gray-500 italic">
+                Chọn: {formData[stepKey]}
+              </div>
             )}
 
             <button
